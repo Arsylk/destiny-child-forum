@@ -1,0 +1,118 @@
+{{extend 'layout.html'}}
+{{block head}}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" type="text/javascript"></script>
+{{end}}
+
+<div style="display: flex; width: 100%; height: 800px; margin: auto;">
+    <canvas id="traffic_chart" width="400" height="400"></canvas>
+</div>
+<!--<canvas id="model_chart" width="400" height="400"></canvas>-->
+{{=globals().get('table', '')}}
+
+{{block page_js}}
+<script>
+    //traffic chart initialization
+    {{=ASSIGNJS(data_views=globals().get('data_views', []))}}
+    {{=ASSIGNJS(data_downloads=globals().get('data_downloads', []))}}
+    {{=ASSIGNJS(data_days=globals().get('data_days', []))}}
+    let traffic_chart_ctx = document.getElementById('traffic_chart').getContext('2d');
+    let traffic_chart = new Chart(traffic_chart_ctx, {
+        type: 'line',
+        data: {
+            labels: data_days,
+            datasets: [{
+                label: 'Views',
+                data: data_views,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                ],
+                borderWidth: 1
+            },{
+                label: 'Downloads',
+                data: data_downloads,
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.2)',
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            title: {
+                display: true,
+                text: 'Traffic Statistics'
+            },
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
+<!--<script>-->
+    <!--//models chart initialization-->
+    <!--{{=ASSIGNJS(data_model_ids=globals().get('data_model_ids', []))}}-->
+    <!--{{=ASSIGNJS(data_model_names=globals().get('data_model_names', []))}}-->
+    <!--{{=ASSIGNJS(data_model_views=globals().get('data_model_views', []))}}-->
+    <!--{{=ASSIGNJS(data_model_downloads=globals().get('data_model_downloads', []))}}-->
+    <!--let model_chart_ctx = document.getElementById('model_chart').getContext('2d');-->
+    <!--let model_chart = new Chart(model_chart_ctx, {-->
+        <!--type: 'horizontalBar',-->
+        <!--data: {-->
+            <!--labels: data_model_ids,-->
+            <!--datasets: [{-->
+                <!--label: 'Views',-->
+                <!--data: data_model_views,-->
+                <!--datasetIndex: 0,-->
+                <!--backgroundColor:-->
+                    <!--'rgba(255, 99, 132, 0.2)',-->
+                <!--borderColor:-->
+                    <!--'rgba(255, 99, 132, 1)',-->
+                <!--borderWidth: 1,-->
+            <!--},-->
+            <!--{-->
+                <!--label: 'Downloads',-->
+                <!--data: data_model_downloads,-->
+                <!--datasetIndex: 1,-->
+                <!--backgroundColor:-->
+                    <!--'rgba(54, 162, 235, 0.2)',-->
+                <!--borderColor:-->
+                    <!--'rgba(54, 162, 235, 1)',-->
+                <!--borderWidth: 1,-->
+            <!--}]-->
+        <!--},-->
+        <!--options: {-->
+            <!--title: {-->
+                <!--display: true,-->
+                <!--text: 'Model Statistics'-->
+            <!--},-->
+            <!--tooltips: {-->
+                <!--callbacks: {-->
+                        <!--title: function (tooltipItem, data) {-->
+                            <!--return data_model_names[tooltipItem[0].index];-->
+                        <!--}-->
+                    <!--}-->
+                <!--}-->
+            <!--},-->
+            <!--scales: {-->
+                <!--yAxes: [{-->
+                    <!--ticks: {-->
+                        <!--beginAtZero: true,-->
+                    <!--}-->
+                <!--}]-->
+            <!--}-->
+        <!--}-->
+    <!--);-->
+<!--</script>-->
+{{end}}

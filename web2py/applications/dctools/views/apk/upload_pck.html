@@ -1,0 +1,19 @@
+{{extend 'layout.html'}}
+
+<div class="row">
+    <div id="web2py_user_form" class="col-lg-6" style="background-color:white; margin: 0 auto 5px auto; box-shadow: 0 0 5px #a1a1a1; border-radius:5px;padding: 20px">
+        {{=form}}
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#models_additional_pck').change(function(event) {
+            if($(this).is(':checked')) {
+                $('#models_model_pck_raw__row').css('display', 'flex');
+            }else {
+                $('#models_model_pck_raw__row').css('display', 'none');
+            }
+        })
+    });
+</script>

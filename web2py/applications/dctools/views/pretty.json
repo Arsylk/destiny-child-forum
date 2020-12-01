@@ -1,0 +1,7 @@
+{{
+import json
+
+result = json.dumps(response._vars, indent=4)
+response.write(result, escape=False)
+response.headers['Content-Type'] = 'application/json'
+}}

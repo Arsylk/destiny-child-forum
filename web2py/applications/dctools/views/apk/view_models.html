@@ -1,0 +1,64 @@
+{{extend 'layout.html'}}
+{{block head}}
+    <style>
+    .web2py_htmltable {
+        overflow-x: visible;
+        -ms-overflow-x: visible;
+        height: 100%;
+    }
+    .web2py_grid tbody tr {
+        cursor: pointer;
+    }
+    #modelPreview {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 9999999;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+    }
+    @media screen and (max-width: 576px) {
+        .rating-container, tr th:nth-child(4) {
+            display: none;
+        }
+    }
+    </style>
+{{end}}
+
+{{=grid}}
+
+<div id="modelPreview">
+    <img id="modelPreviewImg" src="" width="500px" height="800px" style="position: absolute; display: none;">
+</div>
+
+{{block page_js}}
+<script>
+$(document).ready(function() {
+    $('#modelPreview').on('click', function() {
+        $(this).css('display', 'none');
+         $('#modelPreviewImg').css('display', 'none');
+    });
+    $("tbody tr").on('click', function() {
+        window.location = '/apk/display_pck/'+$(this).attr('id');
+    });
+     $("tbody tr").on('contextmenu', function(e) {
+         e.preventDefault();
+         var w = parseInt($('#modelPreview').width());
+         var w2 = parseInt($('#modelPreviewImg').width());
+         var h = parseInt($('#modelPreview').height());
+         var h2 = parseInt($('#modelPreviewImg').height());
+         $('#modelPreview').css('display', 'unset');
+         $('#modelPreviewImg').css('left', (w/2)-(w2/2)+'px');
+         $('#modelPreviewImg').css('top', (h/2)-(h2/2)+'px');
+         $('#modelPreviewImg').attr('src', 'https://arsylk.pythonanywhere.com/api/get_model_preview/'+$(this).attr('id'));
+         document.getElementById('modelPreviewImg').onload = function(kys) {
+             $('#modelPreviewImg').css('display', 'unset');
+             console.log(kys);
+         };
+         return false;
+    });
+});
+</script>
+{{end}}

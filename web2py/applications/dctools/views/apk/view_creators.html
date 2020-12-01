@@ -1,0 +1,31 @@
+{{extend 'layout.html'}}
+{{block head}}
+    <style>
+    .web2py_grid tbody tr {
+        cursor: pointer;
+        height: 54px;
+    }
+    .web2py_console {
+        display: none;
+    }
+    </style>
+{{end}}
+
+
+{{=creator if 'creator' in globals() else ''}}
+{{=userpage if 'userpage' in globals() else ''}}
+{{=grid}}
+
+{{block page_js}}
+    <script>
+    $(document).ready(function() {
+        $("tbody tr").on('click', function() {
+            {{if request.args(0) is None:}}
+                window.location = '/apk/view_creators/'+$(this).attr('id');
+            {{else:}}
+                window.location = '/apk/display_pck/'+$(this).attr('id');
+            {{pass}}
+        });
+    });
+    </script>
+{{end}}

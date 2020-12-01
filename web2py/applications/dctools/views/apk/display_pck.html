@@ -1,0 +1,235 @@
+{{extend 'layout.html'}}
+{{from gluon.serializers import json}}
+{{import os}}
+{{block head}}
+	<style>
+	canvas {
+		border: dashed 0px #CCC;
+	}
+    .maxwidth {
+        max-width: 500px;
+    }
+    .slidecontainer {
+        text-align: center;
+    }
+    .sliderlabel {
+        width: 100%;
+        height: 15px;
+    }
+    .slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 15px;
+        margin: 10px 0px;
+        border-radius: 5px;
+        background: #d3d3d3;
+        outline: none;
+        opacity: 0.7;
+        -webkit-transition: .2s;
+        transition: opacity .2s;
+    }
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: #4CAF50;
+        cursor: pointer;
+    }
+    .slider::-moz-range-thumb {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: #4CAF50;
+        cursor: pointer;
+    }
+    .select-motions {
+        width: 100%;
+        height: 40px;
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        background: #d3d3d3;
+    }
+    .select-motions:focus {
+        outline-width: 0;
+    }
+	</style>
+    <script src="/static/js/gif.js"></script>
+    <script src="/static/js/gif.worker.js"></script>
+	<script src="/static/js/live2dsdk/live2d.min.js"></script>
+	<script src="/static/js/live2dsdk/Live2DFramework.js"></script>
+	<script src="/static/js/live2dsdk/L2DPckModel.js"></script>
+	<script src="/static/js/live2dsdk/PlatformManager.js"></script>
+	<script src="/static/js/live2dsdk/ModelSettingJson.js"></script>
+	<script src="/static/js/live2dsdk/destinychild.2d.js"></script>
+    <script>
+        const modelId = "{{=model_meta['id']}}";
+        modelName = "{{=model_meta['model_path']}}";
+        previewMade = {{=str('preview' in model_meta).lower()}};
+    </script>
+{{end}}
+<body onload="initModel()">
+     <div id="modelInfoContainer" style="float: left; padding: 5px; max-width: 500px;">
+            {{basename = os.path.basename(model_meta['directory'])}}
+            <h4>[ {{=basename}} ]</h4>
+            {{for file in sorted(os.listdir(model_meta['directory'])):}}
+                {{if not file.endswith('.pck'):}}
+                <span>&nbsp;-&nbsp;&nbsp;{{=A(file, _href=URL('static', '/models/%s/%s' % (basename, file)))}}</span><br>
+                {{pass}}
+            {{pass}}
+            <div style="height: 10px;"></div>
+            <h5>
+                {{
+                    clean_model_meta = dict(model_meta)
+                    del clean_model_meta['directory']
+                    del clean_model_meta['model_path']
+                }}
+                {{if 'background' in clean_model_meta:}}
+                    {{del clean_model_meta['background']}}
+                {{pass}}
+                {{if 'model_info' in clean_model_meta:}}
+                    {{del clean_model_meta['model_info']}}
+                {{pass}}
+                {{=BEAUTIFY(clean_model_meta)}}
+                {{if 'model_info' in model_meta:}}
+                    {{=BEAUTIFY(model_meta['model_info'])}}
+                {{pass}}
+            </h5>
+        </div>
+        <div id="live2dcontainer" class="maxwidth" style="float: right;">
+            <canvas id="canvas" class="maxwidth" width="500px" height="800px" style="margin: 10px;" onclick="totsugeki()"></canvas>
+            <!-- enabled sliders -->
+            <div class="slidecontainer maxwidth" id="modelSliders" style="margin: 10px;">
+              <span id="modelScaleLabel" class="sliderlabel">Scale: </span>
+              <input type="range" min="50" max="450" value="100" class="slider" id="modelScale"><br>
+              <span id="modelXLabel" class="sliderlabel">Offset X: </span>
+              <input type="range" min="1" max="200" value="100" class="slider" id="modelX"><br>
+              <span id="modelYLabel" class="sliderlabel">Offset Y: </span>
+              <input type="range" min="1" max="200" value="100" class="slider" id="modelY"><br>
+              <select id="modelMotions" class="select-motions"></select>
+              <select id="selectBackground" class="select-motions">
+                <option value="#ffffff">None</option>
+                <option value="url(https://i.imgur.com/F9kwmjAh.jpg)">City</option>
+                <option value="url(https://i.imgur.com/BsyjF8Uh.jpg)">Bedroom</option>
+                <option value="url(https://i.imgur.com/GBzcSrt.png")>Beach</option>
+                <option value="url(https://i.imgur.com/GyVmniVh.jpg)">Forest</option>
+                <option value="-1">Custom</option>
+              </select>
+              <input type="text" class="select-motions" id="modelBackground" placeholder="css background: ..." >
+            </div>
+        </div>
+    <script>
+    let canvas = document.getElementById("canvas");
+    $(canvas).dblclick(function(e) {
+        if(pckModel) {
+            pckModel.drag = !pckModel.drag;
+        }
+    });
+
+    let mgif = null;
+    $(canvas).contextmenu(function(e) {
+        if(!mgif) {
+            mgif = new GIF({
+                workers: 4,
+                quality: 1,
+                workerScript: '/static/js/gif.worker.js'
+            });
+            mgif.on('progress', function(p) {
+                $(canvas).css('background-image', 'linear-gradient(to right, lime '+p*100+'%, white 0%)');
+            });
+            mgif.on('finished', function(blob) {
+                console.log('gif finished');
+                let a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.target = '_blank';
+
+                $('#modelInfoContainer').append(a);
+                a.click();
+            });
+        }
+
+        let recordingStart = performance.now();
+        pckModel.getImage(function(gl, finished) {
+            console.log("frame added: "+mgif.frames.length);
+            if(finished || mgif.frames.length >= 400) {
+                pckModel.getImage(null);
+                let recordingEnd = performance.now();
+                for(let i = 0; i < mgif.frames.length; i++) {
+                    mgif.frames[i].delay = (recordingEnd - recordingStart)/mgif.frames.length;
+                }
+                mgif.render();
+            }else {
+                mgif.addFrame(gl.canvas, {delay: 30, copy: true});
+            }
+        });
+    });
+
+    $(window).on("resize", function(event) {
+        let maxwidth = $(document.body).width() - 30;
+        $(".maxwidth").each((index, element) => {
+            let margin = parseInt($(element).css("margin-left")+$(element).css("margin-right"));
+            $(element).css("max-width", maxwidth - margin*2);
+        });
+    });
+    $(window).resize();
+
+    let sliderScale = document.getElementById("modelScale");
+    let sliderX = document.getElementById("modelX");
+    let sliderY = document.getElementById("modelY");
+
+    let lableScale = document.getElementById("modelScaleLabel");
+    let lableX = document.getElementById("modelXLabel");
+    let lableY = document.getElementById("modelYLabel");
+
+    let selectBackground = document.getElementById("selectBackground");
+    let inputBackground = document.getElementById("modelBackground");
+
+    sliderScale.oninput = function() {
+        modelScale = this.value/100;
+        lableScale.innerText = "Scale: "+modelScale;
+    };
+    sliderX.oninput = function() {
+        modelX = (this.value-100)/100;
+        lableX.innerText = "Offset X: "+modelX;
+    };
+    sliderY.oninput = function() {
+        modelY = (this.value-100)/100;
+        lableY.innerText = "Offset Y: "+modelY;
+    };
+
+    // temp maybe
+    let url = new URL(window.location);
+    sliderScale.value = Number(url.searchParams.get('modelScale')) * 100 || sliderScale.value;
+    sliderX.value = Number(url.searchParams.get('modelX')) * 100 + 100 || sliderX.value;
+    sliderY.value = Number(url.searchParams.get('modelY')) * 100 + 100 || sliderY.value;
+    canvas.width = Number(url.searchParams.get('canvasWidth')) || canvas.width;
+    canvas.height = Number(url.searchParams.get('canvasHeight')) || canvas.height;
+    // end
+
+    sliderScale.oninput(sliderScale.value);
+    sliderX.oninput(sliderX.value);
+    sliderY.oninput(sliderY.value);
+
+    selectBackground.onchange = function(e) {
+        if(selectBackground.value === -1) {
+            inputBackground.style="";
+            $(canvas).css('background', inputBackground.value);
+        }else {
+            inputBackground.style="display: none;";
+            $(canvas).css('background', selectBackground.value);
+        }
+    };
+    selectBackground.onchange(null);
+
+    inputBackground.onchange = function(e) {
+        if(inputBackground.value.startsWith('http'))
+            inputBackground.value = 'url('+inputBackground.value+')';
+        $(canvas).css('background', inputBackground.value);
+    };
+    inputBackground.value = "{{=model_meta['background'] if 'background' in model_meta else ''}}";
+    inputBackground.onchange(null);
+    </script>
+</body>
+</html>
